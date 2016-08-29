@@ -1,14 +1,16 @@
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver import Chrome, PhantomJS
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from data_pipeline.api.resmatrix.events import *
 from data_pipeline.common import Gaddery
-from data_pipeline.log import MissingDataLogger
+from data_pipeline.logutils import MissingDataLogger, SeleniumLoggerUtil
 from data_pipeline.shortcuts import check_element_exists
 from data_pipeline.security import PasswordManager
 from data_pipeline.api.resmatrix.htmlprofile import ResMatrixHtmlProfile
 from time import sleep
+from data_pipeline import PHANTOM_JS_FILEPATH, CHROME_DRIVER_FILEPATH
 
 
 class RsrvTypes:
@@ -16,10 +18,13 @@ class RsrvTypes:
     booked = "Booked"
     update = "Update"
 
+
 MAX_PAGES = 64
 RSRV_TYPE = RsrvTypes.arrival
 OUTPUT_EXCEL = "booking-data-arrivals.xls"
 LOG_FILE = "missing-data.log"
+DRIVER_FILEPATH = CHROME_DRIVER_FILEPATH
+browser_type = Chrome
 
 
 class ResMatrixBookingGaddery(Gaddery):
@@ -29,8 +34,8 @@ class ResMatrixBookingGaddery(Gaddery):
     start_date = None
     end_date = None
 
-    def __init__(self, browser, start_date, end_date=None):
-        super(ResMatrixBookingGaddery, self).__init__(browser)
+    def __init__(self, start_date, end_date=None):
+        super().__init__(browser_type(DRIVER_FILEPATH))
         self.start_date = start_date
         if end_date:
             self.end_date = end_date
@@ -39,33 +44,36 @@ class ResMatrixBookingGaddery(Gaddery):
         self.missing_data_logger = MissingDataLogger(LOG_FILE)
 
     def get_scraped_data(self):
-        self.browser.get(self.default_start_link)
-        # new_booking = ResBookingBuilder(filename=OUTPUT_EXCEL)
-        # header_names = get_fields_from_profile(ResMatrixHtmlProfile)
-        # new_booking.set_header_names(header_names)
-        self._login()
-        self._select_sidebar_menu_item('Res Detail')
-        self._filter_bookings(self.start_date, self.end_date, RSRV_TYPE)
-        current_page = 0
-        if check_element_exists('ctl00$CPH1$AspNetPager1_input', self.browser):
-            MAX_PAGES = len(Select(self.browser.find_element_by_id('ctl00$CPH1$AspNetPager1_input')).options)
+        try:
+            self.browser.get(self.default_start_link)
+            # new_booking = ResBookingBuilder(filename=OUTPUT_EXCEL)
+            # header_names = get_fields_from_profile(ResMatrixHtmlProfile)
+            # new_booking.set_header_names(header_names)
+            self._login()
+            self._select_sidebar_menu_item('Res Detail')
+            self._filter_bookings(self.start_date, self.end_date, RSRV_TYPE)
+            current_page = 0
+            if check_element_exists('ctl00$CPH1$AspNetPager1_input', self.browser):
+                MAX_PAGES = len(Select(self.browser.find_element_by_id('ctl00$CPH1$AspNetPager1_input')).options)
 
-            WebDriverWait(self.browser, 3).until(
-                TableHasRowQtyEvent(12, current_page, MAX_PAGES))
+                WebDriverWait(self.browser, 3).until(
+                    TableHasRowQtyEvent(12, current_page, MAX_PAGES))
 
-            while current_page < MAX_PAGES:
+                while current_page < MAX_PAGES:
+                    self.__crawl_through_reservation_data()
+                    page_selector = Select(self.browser.find_element_by_id('ctl00$CPH1$AspNetPager1_input'))
+                    current_page = int(page_selector.all_selected_options[0].text)
+                    try:
+                        page_selector.select_by_value(str(current_page + 1))
+                    except NoSuchElementException:
+                        break
+                    self.browser.switch_to_default_content()
+                    time.sleep(2)
+                    self.browser.find_element(By.TAG_NAME, "body").send_keys(Keys.HOME)
+            else:
                 self.__crawl_through_reservation_data()
-                page_selector = Select(self.browser.find_element_by_id('ctl00$CPH1$AspNetPager1_input'))
-                current_page = int(page_selector.all_selected_options[0].text)
-                try:
-                    page_selector.select_by_value(str(current_page + 1))
-                except NoSuchElementException:
-                    break
-                self.browser.switch_to_default_content()
-                time.sleep(2)
-                self.browser.find_element(By.TAG_NAME, "body").send_keys(Keys.HOME)
-        else:
-            self.__crawl_through_reservation_data()
+        except NoSuchElementException as e:
+            SeleniumLoggerUtil.save_screenshot(self.browser)
         return self.scraped_data
 
     def __crawl_through_reservation_data(self):
@@ -146,7 +154,4 @@ class ResMatrixBookingGaddery(Gaddery):
             self.browser = browser
 
         def __call__(self, *args, **kwargs):
-            print(args)
-            print(kwargs)
-            print(self.current_time, ResMatrixBookingGaddery.get_page_time(self.browser))
             return ResMatrixBookingGaddery.get_page_time(self.browser) != self.current_time

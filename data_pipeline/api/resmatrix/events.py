@@ -17,8 +17,6 @@ class TableHasRowQtyEvent:
         if self.current_page == self.max_pages:
             time.sleep(3)
             return True
-        print(self.current_page)
-        print(self.max_pages)
         try:
             row_count = len(driver.find_element_by_tag_name("table").find_elements_by_tag_name("tr"))
             return self.count == row_count
