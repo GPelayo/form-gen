@@ -7,7 +7,7 @@ booking_date = "8/26/16"
 end_date = "8/26/16"
 
 gd = ResMatrixBookingGaddery(booking_date, end_date)
-data = gd.get_scraped_data()
+data = gd.collect_data()
 
 with open('itr.json', 'w+') as test_file:
     json.dump(data, test_file)

@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from data_pipeline.api.resmatrix.events import *
-from data_pipeline.common import Gaddery
+from data_pipeline.common import SeleniumGaddery
 from data_pipeline.logutils import MissingDataLogger, SeleniumLoggerUtil
 from data_pipeline.shortcuts import check_element_exists
 from data_pipeline.security import PasswordManager
@@ -27,7 +27,7 @@ DRIVER_FILEPATH = CHROME_DRIVER_FILEPATH
 browser_type = Chrome
 
 
-class ResMatrixBookingGaddery(Gaddery):
+class ResMatrixBookingGaddery(SeleniumGaddery):
     browser = None
     missing_data_logger = None
     default_start_link = "https://res.travlynx.com/Admin/Login/SignIn.aspx"
@@ -43,7 +43,7 @@ class ResMatrixBookingGaddery(Gaddery):
             self.end_date = start_date
         self.missing_data_logger = MissingDataLogger(LOG_FILE)
 
-    def get_scraped_data(self):
+    def collect_data(self):
         try:
             self.browser.get(self.default_start_link)
             # new_booking = ResBookingBuilder(filename=OUTPUT_EXCEL)

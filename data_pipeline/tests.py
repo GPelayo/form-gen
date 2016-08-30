@@ -6,5 +6,5 @@ class TimedTest:
     def start(gaddery):
         start_time = datetime.now()
         print("Started Scraping...")
-        gaddery.get_scraped_data()
+        gaddery.collect_data()
         print("Scraping Finished after {}".format(datetime.now() - start_time))
