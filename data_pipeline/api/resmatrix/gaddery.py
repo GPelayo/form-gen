@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from data_pipeline.api.resmatrix.events import *
 from data_pipeline.common import SeleniumGaddery
-from data_pipeline.logutils import MissingDataLogger, SeleniumLoggerUtil
+from data_pipeline.logutils import SeleniumLoggerUtil, DataLogger
 from data_pipeline.shortcuts import check_element_exists
 from data_pipeline.security import PasswordManager
 from data_pipeline.api.resmatrix.htmlprofile import ResMatrixHtmlProfile
@@ -23,6 +23,7 @@ MAX_PAGES = 64
 RSRV_TYPE = RsrvTypes.arrival
 OUTPUT_EXCEL = "booking-data-arrivals.xls"
 LOG_FILE = "missing-data.log"
+LOG_MSG_TMLT = "Can't find section {} for Guest {}."
 DRIVER_FILEPATH = CHROME_DRIVER_FILEPATH
 browser_type = Chrome
 
@@ -41,7 +42,7 @@ class ResMatrixBookingGaddery(SeleniumGaddery):
             self.end_date = end_date
         else:
             self.end_date = start_date
-        self.missing_data_logger = MissingDataLogger(LOG_FILE)
+        self.missing_data_logger = DataLogger(LOG_FILE)
 
     def collect_data(self):
         try:
@@ -138,9 +139,9 @@ class ResMatrixBookingGaddery(SeleniumGaddery):
                         gathered_data[field_name] = self.browser.find_element_by_css_selector(element_id)\
                             .text.replace("\n", "")
                     except NoSuchElementException:
-                        self.missing_data_logger.log(element_id, res_id)
+                        self.missing_data_logger.log(LOG_MSG_TMLT.format(element_id, res_id))
             except NoSuchElementException:
-                        self.missing_data_logger.log(tab_name, res_id)
+                        self.missing_data_logger.log(LOG_MSG_TMLT.format(tab_name, res_id))
         self.scraped_data.append(gathered_data)
 
     @staticmethod
