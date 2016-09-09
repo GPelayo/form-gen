@@ -5,11 +5,26 @@ from datetime import datetime
 import phonenumbers
 import os
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-FONT_CONFIG_DIR = os.path.join(APP_DIR, 'settings', 'font')
-TEXT_OUTPUT_CONFIG_DIR = os.path.join(APP_DIR, 'settings', 'text_output')
-FONT_FILES_DIR = os.path.join(APP_DIR, 'assets', 'fonts')
-TEMPLATE_FILES_DIR = os.path.join(APP_DIR, 'assets', 'templates')
+APP_DIR = os.path.dirname(os.path.dirname(__file__))
+SETTINGS_DIR = os.path.join(APP_DIR, 'config', 'settings')
+ASSET_DIR = os.path.join(APP_DIR, 'config', 'assets')
+
+FONT_CONFIG_DIR = os.path.join(SETTINGS_DIR, 'font')
+TEXT_OUTPUT_CONFIG_DIR = os.path.join(SETTINGS_DIR, 'text_output')
+FONT_FILES_DIR = os.path.join(ASSET_DIR, 'assets', 'fonts')
+TEMPLATE_FILES_DIR = os.path.join(ASSET_DIR, 'templates')
+
+TOP_RIGHT_X_OPT = 'top_right_x'
+TOP_RIGHT_Y_OPT = 'top_right_y'
+BOTTOM_LEFT_X_OPT = 'bottom_left_x'
+BOTTOM_LEFT_Y_OPT = 'bottom_left_y'
+TEMPLATE_FONT = 'font'
+DATA_TYPE_FONT = 'data_type'
+TEXT_ALIGNMENT = 'alignment'
+VERT_ALIGNMENT = 'vert_alignment'
+
+FONT_FILE = 'font'
+FONT_SIZE = 'size'
 
 SOURCE_FIELD_NAME = 'source_field_name'
 
@@ -50,20 +65,25 @@ class DocumentTemplate:
         fnt_config.read_file(open(os.path.join(FONT_CONFIG_DIR, "{}.ini".format(template_name)), 'r'))
         font_dict = {}
         for text_output_setting_name in fnt_config.sections():
-            font_file_name = fnt_config.get(text_output_setting_name, 'font')
-            font_size = fnt_config.getint(text_output_setting_name, 'size')
+            font_file_name = fnt_config.get(text_output_setting_name, FONT_FILE)
+            font_size = fnt_config.getint(text_output_setting_name, FONT_SIZE)
             font_file_path = os.path.join(FONT_FILES_DIR, font_file_name)
             font_dict[text_output_setting_name] = self.font_factory(font_file_path, font_size).create()
 
         txtout_cfg = ConfigParser()
         txtout_cfg.read_file(open(os.path.join(TEXT_OUTPUT_CONFIG_DIR, "{}.ini".format(template_name)), 'r'))
         for text_output_setting_name in txtout_cfg.sections():
-            x = txtout_cfg.getint(text_output_setting_name, 'x')
-            y = txtout_cfg.getint(text_output_setting_name, 'y')
-            font_name = txtout_cfg.get(text_output_setting_name, 'font')
+            text_alignment = txtout_cfg.get(text_output_setting_name, TEXT_ALIGNMENT)
+            vert_alignment = txtout_cfg.get(text_output_setting_name, VERT_ALIGNMENT)
+            top_right_x = txtout_cfg.getint(text_output_setting_name, TOP_RIGHT_X_OPT)
+            top_right_y = txtout_cfg.getint(text_output_setting_name, TOP_RIGHT_Y_OPT)
+            bottom_left_x = txtout_cfg.getint(text_output_setting_name, BOTTOM_LEFT_X_OPT)
+            bottom_left_y = txtout_cfg.getint(text_output_setting_name, BOTTOM_LEFT_Y_OPT)
+            font_name = txtout_cfg.get(text_output_setting_name, FONT_FILE)
             font = font_dict[font_name]
-            frm_data = TextOutputData(text_output_setting_name, x, y, font)
-            frm_data.data_type = txtout_cfg.get(text_output_setting_name, 'data_type').lower()
+            frm_data = TextOutputData(text_output_setting_name, top_right_x, top_right_y, bottom_left_x, bottom_left_y,
+                                      font, alignment=text_alignment, vert_alignment=vert_alignment)
+            frm_data.data_type = txtout_cfg.get(text_output_setting_name, DATA_TYPE_FONT).lower()
             frm_data.source_type = txtout_cfg.get(text_output_setting_name, 'source_type', fallback="").lower()
             frm_data.source_field_name = txtout_cfg.get(text_output_setting_name, SOURCE_FIELD_NAME,
                                                         fallback="").lower()
@@ -78,11 +98,16 @@ class DocumentTemplate:
 
 
 class TextOutputData:
-    def __init__(self, name, loc_x, loc_y, font, color="black"):
+    def __init__(self, name, top_left_x, top_left_y, bottom_right_x, bottom_right_y, font, color="black",
+                 alignment='left', vert_alignment='bottom'):
         self.__text = None
         self.name = name
-        self.loc_x = loc_x
-        self.loc_y = loc_y
+        self.top_left_x = top_left_x
+        self.top_left_y = top_left_y
+        self.bottom_right_x = bottom_right_x
+        self.bottom_right_y = bottom_right_y
+        self.alignment = alignment
+        self.vert_alignment = vert_alignment
         self.font = font
         self.color = color
         self.data_type = None
@@ -180,5 +205,28 @@ class DocumentWriter:
         for form_name in self.template.text_output_dict.keys():
             text_output_data = self.template.text_output_dict[form_name]
             if text_output_data:
-                image_draw.text((text_output_data.loc_x, text_output_data.loc_y), text_output_data.get_text(),
+                coordinates = self.__get_true_xy(image_draw, text_output_data)
+                image_draw.text(coordinates, text_output_data.get_text(),
                                 font=text_output_data.font, fill=text_output_data.color)
+
+    @staticmethod
+    def __get_true_xy(draw, text_output: TextOutputData):
+        text_width, text_height = draw.textsize(text_output.get_text(), font=text_output.font)
+
+        if text_output.alignment == 'center':
+            textbox_width = text_output.bottom_right_x - text_output.top_left_x
+            true_x = (textbox_width - text_width) / 2 + text_output.top_left_x
+        elif text_output.alignment == 'right':
+            true_x = text_output.bottom_right_x - text_width
+        else:
+            true_x = text_output.top_left_x
+
+        textbox_height = text_output.bottom_right_y - text_output.top_left_y
+
+        if text_output.vert_alignment == 'middle':
+            true_y = (textbox_height - text_height) / 2 + text_output.top_left_y
+        elif text_output.vert_alignment == 'top':
+            true_y = text_output.top_left_y
+        else:
+            true_y = text_output.top_left_y + (textbox_height - text_height)
+        return true_x, true_y
