@@ -1,0 +1,70 @@
+#table_cntnr
+{
+    text-align: center;
+    width: 50%;
+    margin: 0 auto;
+}
+
+#input_table th
+{
+    width: 10em;
+}
+
+
+#input_table td
+{
+    padding-bottom: 0.25em;
+    width: 50px;
+    padding-left: 1em;
+}
+
+
+#img_prvw
+{
+    width: 100%;
+    height: auto;
+}
+
+#outer_cntnr
+{
+    min-width: 400px;
+    width: 800px;
+    padding: 10px;
+    background: white;
+    margin: 0 auto;
+}
+
+#input_cntnr
+{
+    text-align: center;
+    width: 100%;
+    margin: 0 auto;
+}
+
+
+
+#main_cntnr
+{
+    height: 100%
+    width: 100%
+}
+
+body
+{
+    background: #ccc;
+}
+
+td
+{
+    text-align: left;
+}
+
+.right
+{
+    text-align: right;
+}
+
+.center
+{
+    text-align: center;
+}

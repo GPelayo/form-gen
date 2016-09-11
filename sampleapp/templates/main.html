@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="text/javascript" src="{% static 'sampleapp/js/jquery-3.1.0.min.js'%}"></script>
+    <script type="text/javascript" src="{% static 'imageareaselect/scripts/jquery.imgareaselect.pack.js' %}"></script>
+    <script type="text/javascript" src="{% static 'sampleapp/js/image-upload.js'%}"></script>
+    <link type="text/css" rel="stylesheet" href="{% static 'imageareaselect/css/imgareaselect-default.css' %}" />
+    <link type="text/css" rel="stylesheet" href="{% static 'sampleapp/css/main.css'%}">
+</head>
+<body>
+    <div id="main_cntnr">
+        <div id="outer_cntnr">
+            <div id="input_cntnr">
+                <form enctype="multipart/form-data" id="main_form" method="post">
+                {% csrf_token %}
+                <div id="table_cntnr">
+                    <table id="input_table">
+                        {{ form.as_table }}
+                    </table>
+                </div>
+                <img id="img_prvw" src="{% static 'templates\sample.png'%}" alt="Image Preview" />
+
+                {% csrf_token %}
+                <input type='submit'/>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        function readImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('img#img_prvw').attr('src', e.target.result);
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        $("#id_template_image").change(function(){
+            console.log('Read File')
+            readImage(this);
+        });
+
+        $(document).ready(function () {
+            $('#img_prvw').imgAreaSelect({
+                handles: true,
+                onSelectEnd: test
+            });
+        });
+
+        function test(tag, box_data) {
+            console.log(box_data.x1, typeof box_data.x1)
+            $('#id_top_left_x').val(box_data.x1);
+            $('#id_top_left_y').val(box_data.y1);
+            $('#id_bottom_right_x').val(box_data.x2);
+            $('#id_bottom_right_y').val(box_data.y2);
+        };
+    </script>
+</body>
+</html>
