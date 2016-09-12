@@ -1,4 +1,4 @@
-from PIL import ImageDraw, Image, ImageFont, ImageFile
+from PIL import ImageDraw, Image, ImageFont
 from configparser import ConfigParser
 from re import findall
 from datetime import datetime
@@ -32,47 +32,68 @@ SOURCE_FIELD_NAME = 'source_field_name'
 DEFAULT_IMAGE_FILE_TYPE = 'PNG'
 
 
+class NoTargetNameException(Exception):
+    pass
+
+
 class DocTemplateType:
     Image = 0
 
 
 class AbstractFontFactory:
-    file_path = None
-    size = None
-
-    def __init__(self, font_file, size):
-        self.file_path = font_file
-        self.size = size
+    def create(self, font_filepath, size):
+        raise NotImplementedError
 
 
 class PillowImageFontFactory(AbstractFontFactory):
-    def __init__(self, font_file, size):
-        super().__init__(font_file, size)
+    def create(self, font_filepath, size):
+        return ImageFont.truetype(font_filepath, size)
+
+
+class AbstractImageTemplateFactory:
+    img_template = None
+    top_right_x = None
+    top_right_y = None
+    bottom_left_x = None
+    bottom_left_y = None
+    font = None
+    font_factory = None
 
     def create(self):
-        return ImageFont.truetype(self.file_path, self.size)
+        raise NotImplementedError
+
+    def set_image(self, image_bytes):
+        self.img_template = image_bytes
+
+    def set_text_area(self, x1, y1, x2, y2):
+        self.top_right_x = int(x1)
+        self.top_right_y = int(y1)
+        self.bottom_left_x = int(x2)
+        self.bottom_left_y = int(y2)
+
+    def set_font(self, font_type, size):
+        font_path = os.path.join(FONT_FILES_DIR, "{}.ttf".format(font_type.lower()))
+        self.font = self.font_factory.create(font_path, int(size))
 
 
-class ImageTemplate:
-    font_factory = PillowImageFontFactory
+class ConfigImageTemplateFactory(AbstractImageTemplateFactory):
+    def __init__(self, template_name):
+        self.font_factory = PillowImageFontFactory()
+        self.template_name = template_name
 
-    def __init__(self, template_name, file_ext="png"):
-        self.name = template_name
-        self.file_ext = file_ext
-        self.template_path = os.path.join(TEMPLATE_FILES_DIR, "{}.{}".format(template_name, self.file_ext))
-        self.text_output_dict = {}
-
+    def create(self):
         fnt_config = ConfigParser()
-        fnt_config.read_file(open(os.path.join(FONT_CONFIG_DIR, "{}.ini".format(template_name)), 'r'))
+        fnt_config.read_file(open(os.path.join(FONT_CONFIG_DIR, "{}.ini".format(self.template_name)), 'r'))
         font_dict = {}
+        img_template = AssetImageTemplate(self.template_name)
         for text_output_setting_name in fnt_config.sections():
             font_file_name = fnt_config.get(text_output_setting_name, FONT_FILE)
             font_size = fnt_config.getint(text_output_setting_name, FONT_SIZE)
             font_file_path = os.path.join(FONT_FILES_DIR, font_file_name)
-            font_dict[text_output_setting_name] = self.font_factory(font_file_path, font_size).create()
+            font_dict[text_output_setting_name] = self.font_factory.create(font_file_path, font_size)
 
         txtout_cfg = ConfigParser()
-        txtout_cfg.read_file(open(os.path.join(TEXT_OUTPUT_CONFIG_DIR, "{}.ini".format(template_name)), 'r'))
+        txtout_cfg.read_file(open(os.path.join(TEXT_OUTPUT_CONFIG_DIR, "{}.ini".format(self.template_name)), 'r'))
         for text_output_setting_name in txtout_cfg.sections():
             text_alignment = txtout_cfg.get(text_output_setting_name, TEXT_ALIGNMENT)
             vert_alignment = txtout_cfg.get(text_output_setting_name, VERT_ALIGNMENT)
@@ -84,6 +105,7 @@ class ImageTemplate:
             font = font_dict[font_name]
             frm_data = TextOutputData(text_output_setting_name, top_right_x, top_right_y, bottom_left_x, bottom_left_y,
                                       font, alignment=text_alignment, vert_alignment=vert_alignment)
+
             frm_data.data_type = txtout_cfg.get(text_output_setting_name, DATA_TYPE_FONT).lower()
             frm_data.source_type = txtout_cfg.get(text_output_setting_name, 'source_type', fallback="").lower()
             frm_data.source_field_name = txtout_cfg.get(text_output_setting_name, SOURCE_FIELD_NAME,
@@ -95,7 +117,22 @@ class ImageTemplate:
             frm_data.source_region_code_key = txtout_cfg.get(text_output_setting_name, 'source_region_code_key',
                                                              fallback="").lower()
             frm_data.remove_char = txtout_cfg.get(text_output_setting_name, 'remove_char', fallback="").lower()
-            self.text_output_dict[text_output_setting_name] = frm_data
+            img_template.text_output_dict[text_output_setting_name] = frm_data
+            return img_template
+
+
+class AbstractImageTemplate:
+    pass
+
+
+class AssetImageTemplate(AbstractImageTemplate):
+    def __init__(self, template_name, file_ext="png"):
+        self.name = template_name
+        self.file_ext = file_ext
+        self.filename = os.path.join(TEMPLATE_FILES_DIR, "{}.{}".format(template_name, self.file_ext))
+        with open(self.filename, 'rb') as im_file:
+            self.image_data = BytesIO(im_file.read())
+        self.text_output_dict = {}
 
 
 class TextOutputData:
@@ -140,7 +177,7 @@ class TextOutputData:
             else:
                 formatted_data = data[self.source_field_name]
         else:
-            formatted_data = data[self.name]
+            raise NoTargetNameException
 
         if self.data_type == 'phone_number':
             pn_pbj = phonenumbers.parse(formatted_data, self.default_region_code)
@@ -169,7 +206,7 @@ class TextOutputData:
 
 
 class DocumentWriter:
-    def __init__(self, template: ImageTemplate):
+    def __init__(self, template: AssetImageTemplate):
         self.template = template
 
     def populate_form(self, data: dict):
@@ -180,7 +217,7 @@ class DocumentWriter:
         self.template.text_output_dict[name].text = text
 
     def get_image(self):
-        im = Image.open(self.template.template_path)
+        im = Image.open(self.template.image_data)
         draw = ImageDraw.Draw(im)
         self.__write_data(draw)
         return im

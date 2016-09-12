@@ -1,28 +1,13 @@
-#table_cntnr
+#img_prvw
 {
-    text-align: center;
-    width: 50%;
-    margin: 0 auto;
+    width: 100%;
+    height: auto;
 }
-
-#input_table th
-{
-    width: 10em;
-}
-
-
-#input_table td
-{
-    padding-bottom: 0.25em;
-    width: 50px;
-    padding-left: 1em;
-}
-
 
 #outer_cntnr
 {
     min-width: 400px;
-    width: 800px;
+    max-width: 800px;
     padding: 10px;
     background: white;
     margin: 0 auto;
@@ -31,11 +16,24 @@
 #input_cntnr
 {
     text-align: center;
-    width: 100%;
+    width: 50%;
     margin: 0 auto;
 }
 
+#input_table
+{
+    margin-bottom: 1em;
+}
 
+#input_table th
+{
+    width: 10em;
+}
+
+#input_table td
+{
+    padding-left: 1em;
+}
 
 #main_cntnr
 {
@@ -46,6 +44,11 @@
 body
 {
     background: #ccc;
+}
+
+table
+{
+    width: 100%;
 }
 
 td

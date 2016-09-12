@@ -1,4 +1,4 @@
-from data_pipeline import APP_DIR
+from data import APP_DIR
 from datetime import datetime
 import os
 import logging
