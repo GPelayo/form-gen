@@ -22,8 +22,7 @@ class SampleUITemplateFactory(AbstractImageTemplateFactory):
             frm_data = TextOutputData(self.name,
                                       self.top_right_x, self.top_right_y,
                                       self.bottom_left_x, self.bottom_left_y,
-                                      self.font)
-
+                                      self.font, alignment=self.text_alignment, vert_alignment=self.vert_aligment)
             frm_data.source_field_name = self.field_name
             img_template.text_output_dict[self.name] = frm_data
             return img_template

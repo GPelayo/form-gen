@@ -58,12 +58,18 @@ class AbstractImageTemplateFactory:
     bottom_left_y = None
     font = None
     font_factory = None
+    vert_aligment = None
+    text_alignment = None
 
     def create(self):
         raise NotImplementedError
 
     def set_image(self, image_bytes):
         self.img_template = image_bytes
+
+    def set_alignment(self, text_alignment, vert_aligment):
+        self.vert_aligment = vert_aligment
+        self.text_alignment = text_alignment
 
     def set_text_area(self, x1, y1, x2, y2):
         self.top_right_x = int(x1)
@@ -131,7 +137,7 @@ class AssetImageTemplate(AbstractImageTemplate):
         self.file_ext = file_ext
         self.filename = os.path.join(TEMPLATE_FILES_DIR, "{}.{}".format(template_name, self.file_ext))
         with open(self.filename, 'rb') as im_file:
-            self.image_data = BytesIO(im_file.read())
+            self.image_data = im_file.read()
         self.text_output_dict = {}
 
 
@@ -217,7 +223,7 @@ class DocumentWriter:
         self.template.text_output_dict[name].text = text
 
     def get_image(self):
-        im = Image.open(self.template.image_data)
+        im = Image.open(BytesIO(self.template.image_data))
         draw = ImageDraw.Draw(im)
         self.__write_data(draw)
         return im
@@ -260,7 +266,7 @@ class DocumentWriter:
     @staticmethod
     def __get_true_xy(draw, text_output: TextOutputData):
         text_width, text_height = draw.textsize(text_output.get_text(), font=text_output.font)
-
+        print(text_output.alignment, text_output.vert_alignment)
         if text_output.alignment == 'center':
             textbox_width = text_output.bottom_right_x - text_output.top_left_x
             true_x = (textbox_width - text_width) / 2 + text_output.top_left_x

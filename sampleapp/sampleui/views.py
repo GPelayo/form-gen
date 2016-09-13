@@ -29,6 +29,7 @@ def main(request):
                                       form.cleaned_data['bottom_right_x'],
                                       form.cleaned_data['bottom_right_y'])
             tmplt_fctry.set_font(form.cleaned_data['font_type'], form.cleaned_data['font_size'])
+            tmplt_fctry.set_alignment('center', 'middle')
             template = tmplt_fctry.create()
             data = SampleCSVWrapper(csv_file).retrieve_json()
             gen_zip = BytesIO()
