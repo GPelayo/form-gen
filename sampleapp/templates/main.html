@@ -21,10 +21,11 @@
                         {{ form.as_table }}
                     </table>
                 </div>
-                <img id="img_prvw" src="{% static 'templates\sample.png'%}" alt="Image Preview" />
-
+                <div>
+                    <img id="img_prvw" src="{% static 'templates\sample.png'%}" alt="Image Preview" />
+                </div>
                 {% csrf_token %}
-                <input type='submit'/>
+                <input class='submit_btn' type='submit'/>
                 </form>
             </div>
         </div>
