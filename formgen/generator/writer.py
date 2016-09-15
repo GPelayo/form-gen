@@ -266,7 +266,6 @@ class DocumentWriter:
     @staticmethod
     def __get_true_xy(draw, text_output: TextOutputData):
         text_width, text_height = draw.textsize(text_output.get_text(), font=text_output.font)
-        print(text_output.alignment, text_output.vert_alignment)
         if text_output.alignment == 'center':
             textbox_width = text_output.bottom_right_x - text_output.top_left_x
             true_x = (textbox_width - text_width) / 2 + text_output.top_left_x

@@ -8,7 +8,6 @@ class SampleCSVWrapper(FormDataApi):
             self.file = open(file, 'r')
         else:
             self.file = file
-        print(file)
         self.csv_reader = csv.DictReader(self.file)
 
     def __del__(self):
