@@ -1,5 +1,6 @@
 import os
 import zipfile
+import configparser
 from django.test import TestCase
 from selenium.webdriver import Chrome, ChromeOptions
 from formgen import APP_DIR as FORMGEN_DIR
@@ -10,6 +11,10 @@ from time import sleep
 test_download_folder = os.path.join(APP_DIR, 'test', 'downloads')
 zip_filepath = os.path.join(test_download_folder, 'gen.zip')
 extracted_dir = os.path.join(test_download_folder, 'gen')
+
+cfg = configparser.ConfigParser()
+DEFAULT_IP = 'http://127.0.0.1'
+cf_ip_address = cfg.get('Django', 'ip', fallback=DEFAULT_IP)
 
 
 class MainPageTest(TestCase):
@@ -24,7 +29,8 @@ class MainPageTest(TestCase):
     co = ChromeOptions()
     desired_caps = {'download.default_directory': test_download_folder}
     co.add_experimental_option('prefs', desired_caps)
-    site_address = 'http://192.168.1.109'
+    global cf_ip_address
+    site_address = cf_ip_address
 
     file_hashes = {'Charlie Lange.jpg': '09cfa0536d62a0e45439d6020b83466179ba899aca8d98c0cd37c4958286aac9',
                    'Lisa Tragnetti.jpg': 'e90233a54dbd4e3593d2758c9ca2d8372c16c5738b8e1cd1009afe94d44308c4',
@@ -37,7 +43,7 @@ class MainPageTest(TestCase):
             os.remove(zip_filepath)
         self.browser = Chrome(chrome_options=self.co)
         self.browser.get(self.site_address)
-        self.browser.execute_script("window.onerror=function(msg){$('body').attr('JSError', msg);}")
+        # self.browser.execute_script("window.onerror=function(msg){$('body').attr('JSError', msg);}")
 
     def test_website_is_live_for_test(self):
         self.browser.implicitly_wait(100)
