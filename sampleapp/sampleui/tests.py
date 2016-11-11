@@ -1,11 +1,11 @@
 import os
 import zipfile
 import configparser
-from django.test import TestCase
+from django.test import LiveServerTestCase
 from selenium.webdriver import Chrome, ChromeOptions
 from formgen import APP_DIR as FORMGEN_DIR
 import hashlib
-from sampleui import APP_DIR
+from sampleapp.sampleui import APP_DIR
 from time import sleep
 
 test_download_folder = os.path.join(APP_DIR, 'test', 'downloads')
@@ -13,11 +13,11 @@ zip_filepath = os.path.join(test_download_folder, 'gen.zip')
 extracted_dir = os.path.join(test_download_folder, 'gen')
 
 cfg = configparser.ConfigParser()
-DEFAULT_IP = 'http://127.0.0.1'
+DEFAULT_IP = 'http://127.0.0.1:8000'
 cf_ip_address = cfg.get('Django', 'ip', fallback=DEFAULT_IP)
 
 
-class MainPageTest(TestCase):
+class MainPageTest(LiveServerTestCase):
     FONT_SIZE_INPUT_ID = 'id_font_size'
     FONT_TYPE_INPUT_ID = 'id_font_type'
     CSV_INPUT_ID = 'id_csv_file'
